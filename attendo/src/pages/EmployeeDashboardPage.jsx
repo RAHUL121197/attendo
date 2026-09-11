@@ -23,26 +23,26 @@ export default function EmployeeDashboardPage() {
     navigate('/employee-login', { replace: true });
   };
 
-  const handleCheckIn = () => {
-    const result = checkIn(employeeId);
+  const handleCheckIn = async () => {
+    const result = await checkIn(employeeId);
     if (!result.success) addToast(result.error, 'error');
     else addToast('Check-in recorded');
   };
 
-  const handleCheckOut = () => {
-    const result = checkOut(employeeId);
+  const handleCheckOut = async () => {
+    const result = await checkOut(employeeId);
     if (!result.success) addToast(result.error, 'error');
     else addToast('Check-out recorded');
   };
 
-  const handlePasswordChange = (event) => {
+  const handlePasswordChange = async (event) => {
     event.preventDefault();
     setPasswordMessage('');
     if (passwordForm.next !== passwordForm.confirm) {
       setPasswordMessage('New passwords do not match');
       return;
     }
-    const result = changePassword(passwordForm.current, passwordForm.next);
+    const result = await changePassword(passwordForm.current, passwordForm.next);
     if (!result.success) {
       setPasswordMessage(result.error);
       return;

@@ -19,8 +19,8 @@ export default function EmployeeLoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const result = login(employeeId, password, 'employee');
+    setTimeout(async () => {
+      const result = await login(employeeId, password, 'employee');
       if (result.success) addToast('Login successful');
       else setError('Invalid email ID, Employee ID, or password');
       setLoading(false);

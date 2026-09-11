@@ -57,14 +57,14 @@ export default function AttendancePage() {
     return records;
   }, [employees, dateAttendance, leaves, selectedDate, isAdmin, empId, filterStatus, filterEmp]);
 
-  const handleCheckIn = (employeeId) => {
-    const result = checkIn(employeeId);
+  const handleCheckIn = async (employeeId) => {
+    const result = await checkIn(employeeId);
     if (result.success) addToast('Check-in successful');
     else addToast(result.error, 'error');
   };
 
-  const handleCheckOut = (employeeId) => {
-    const result = checkOut(employeeId);
+  const handleCheckOut = async (employeeId) => {
+    const result = await checkOut(employeeId);
     if (result.success) addToast('Check-out successful');
     else addToast(result.error, 'error');
   };

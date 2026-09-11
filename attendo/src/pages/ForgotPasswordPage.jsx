@@ -9,7 +9,7 @@ export default function ForgotPasswordPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
     setResult(null);
@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
       setError('Enter your email ID or Employee ID');
       return;
     }
-    const reset = resetPassword(identifier, role);
+    const reset = await resetPassword(identifier, role);
     if (!reset.success) setError(reset.error);
     else setResult(reset);
   };

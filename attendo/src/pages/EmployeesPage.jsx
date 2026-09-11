@@ -74,14 +74,14 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     if (editId) {
       updateEmployee(editId, form);
       addToast('Employee updated successfully');
     } else {
-      const newEmp = addEmployee(form);
+      const newEmp = await addEmployee(form);
       addToast('Employee added successfully');
       if (buildWhatsAppUrl(newEmp, window.location.origin)) handleSendLink(newEmp);
       setCredentials({ name: newEmp.name, email: newEmp.email, employeeId: newEmp.id, password: newEmp.temporaryPassword });

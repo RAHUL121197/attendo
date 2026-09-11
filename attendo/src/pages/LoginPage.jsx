@@ -19,8 +19,8 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const result = login(email, password, 'admin');
+    setTimeout(async () => {
+      const result = await login(email, password, 'admin');
       if (result.success) {
         addToast('Login successful');
       } else {

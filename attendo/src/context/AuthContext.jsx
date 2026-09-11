@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { saveData, loadData, clearData, KEYS } from '../utils/storage';
 import { DEMO_USERS } from '../utils/demoData';
+import { apiEnabled, apiRequest, clearApiToken, saveApiToken } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -25,7 +26,18 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  const login = useCallback((identifier, password, role) => {
+  const login = useCallback(async (identifier, password, role) => {
+    if (apiEnabled) {
+      try {
+        const result = await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier, password }) });
+        saveApiToken(result.token);
+        setUser(result.user);
+        saveData(KEYS.USER, result.user);
+        return { success: true, user: result.user };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    }
     const users = loadData(KEYS.USERS, DEMO_USERS);
     const found = users.find(
       (u) => (role === 'employee'
@@ -45,11 +57,13 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setUser(null);
     clearData(KEYS.USER);
+    clearApiToken();
   }, []);
 
   const changePassword = useCallback((currentPassword, newPassword) => {
     if (!user) return { success: false, error: 'You must be logged in' };
     if (!newPassword || newPassword.length < 8) return { success: false, error: 'Password must be at least 8 characters' };
+    if (apiEnabled) return apiRequest('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }).then(() => ({ success: true })).catch((error) => ({ success: false, error: error.message }));
     const users = loadData(KEYS.USERS, DEMO_USERS);
     const index = users.findIndex((item) => item.id === user.id);
     if (index < 0 || users[index].password !== currentPassword) return { success: false, error: 'Current password is incorrect' };
@@ -59,6 +73,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const resetPassword = useCallback((identifier, role) => {
+    if (apiEnabled) return apiRequest('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ identifier, role }) }).then((result) => ({ success: true, ...result })).catch((error) => ({ success: false, error: error.message }));
     const users = loadData(KEYS.USERS, DEMO_USERS);
     const normalized = identifier.trim().toLowerCase();
     const index = users.findIndex((item) => item.role === role && (item.email?.toLowerCase() === normalized || item.employeeId?.toLowerCase() === normalized));

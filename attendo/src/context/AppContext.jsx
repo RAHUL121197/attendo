@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { saveData, loadData, KEYS } from '../utils/storage';
 import { DEMO_EMPLOYEES, DEMO_USERS, DEFAULT_SETTINGS } from '../utils/demoData';
 import { generateId, getCurrentDate, getCurrentTime, timeToMinutes, timeDiffHours } from '../utils/helpers';
+import { apiEnabled, apiRequest } from '../utils/api';
+import { useAuth } from './AuthContext';
 
 const AppContext = createContext(null);
 
@@ -39,6 +41,7 @@ function generateEmployeeEmail(name, existingUsers) {
 }
 
 export function AppProvider({ children }) {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState(() => {
     const data = loadData(KEYS.EMPLOYEES, null);
     if (!data || data.length === 0) {
@@ -69,6 +72,17 @@ export function AppProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const toastIdRef = useRef(0);
   const employeeSequenceRef = useRef(Number(loadData(KEYS.EMPLOYEE_SEQUENCE, 0)) || 0);
+
+  useEffect(() => {
+    if (!apiEnabled || !user) return undefined;
+    let cancelled = false;
+    Promise.all([apiRequest('/api/employees'), apiRequest('/api/attendance')]).then(([employeeData, attendanceData]) => {
+      if (cancelled) return;
+      setEmployees(employeeData.employees.map((employee) => ({ ...employee, id: String(employee.id), employeeCode: employee.employee_id, designation: employee.position, status: 'Active', shift: 'Default Shift', biometricRegistered: false })));
+      setAttendance(attendanceData.attendance.map((record) => ({ ...record, id: String(record.id), employeeId: String(record.employee_id), date: String(record.date), checkIn: record.check_in, checkOut: record.check_out })));
+    }).catch((error) => console.error(`Database sync failed: ${error.message}`));
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => { saveData(KEYS.EMPLOYEES, employees); }, [employees]);
   useEffect(() => { saveData(KEYS.USERS, users); }, [users]);
@@ -111,6 +125,14 @@ export function AppProvider({ children }) {
   }, []);
 
   const addEmployee = useCallback((emp) => {
+    if (apiEnabled) {
+      return apiRequest('/api/employees', { method: 'POST', body: JSON.stringify({ name: emp.name, email: emp.email, phone: emp.phone, department: emp.department, position: emp.designation }) }).then(({ employee, temporaryPassword }) => {
+        const mapped = { ...emp, ...employee, id: String(employee.id), employeeCode: employee.employee_id, designation: employee.position, temporaryPassword };
+        setEmployees((prev) => [mapped, ...prev]);
+        addNotification(`Employee ${emp.name} added`, 'success');
+        return mapped;
+      });
+    }
     employeeSequenceRef.current = Math.max(employeeSequenceRef.current, getHighestEmployeeSerial(employees));
     let nextSerial = employeeSequenceRef.current + 1;
     let employeeId = `EMP${String(nextSerial).padStart(3, '0')}`;
@@ -163,6 +185,14 @@ export function AppProvider({ children }) {
     const lateTime = settings.lateAfterTime || '10:15';
     const status = timeToMinutes(now) > timeToMinutes(lateTime) ? 'Late' : 'Present';
 
+    if (apiEnabled) {
+      return apiRequest('/api/attendance', { method: 'POST', body: JSON.stringify({ employeeId: Number(employeeId), date: today, checkIn: new Date().toISOString(), status }) }).then(({ attendance: saved }) => {
+        const record = { ...saved, id: String(saved.id), employeeId: String(saved.employee_id), date: String(saved.date), checkIn: saved.check_in, checkOut: saved.check_out };
+        setAttendance((prev) => [...prev.filter((item) => item.employeeId !== record.employeeId || item.date !== record.date), record]);
+        return { success: true, record };
+      }).catch((error) => ({ success: false, error: error.message }));
+    }
+
     const record = {
       id: generateId(),
       employeeId,
@@ -191,6 +221,15 @@ export function AppProvider({ children }) {
     const breakMins = record.breakDuration || 0;
     const worked = timeDiffHours(record.checkIn, now);
     const totalHours = Math.max(0, worked - (breakMins / 60));
+
+    if (apiEnabled) {
+      const checkInTimestamp = record.checkIn?.includes('T') ? record.checkIn : new Date(`${today}T${record.checkIn}:00`).toISOString();
+      return apiRequest('/api/attendance', { method: 'POST', body: JSON.stringify({ employeeId: Number(employeeId), date: today, checkIn: checkInTimestamp, checkOut: new Date().toISOString(), status: record.status }) }).then(({ attendance: saved }) => {
+        const updated = { ...record, ...saved, id: String(saved.id), employeeId: String(saved.employee_id), date: String(saved.date), checkIn: saved.check_in, checkOut: saved.check_out };
+        setAttendance((prev) => prev.map((item) => item.id === record.id ? updated : item));
+        return { success: true };
+      }).catch((error) => ({ success: false, error: error.message }));
+    }
 
     setAttendance((prev) => prev.map((a) =>
       a.id === record.id ? { ...a, checkOut: now, totalHours: Math.round(totalHours * 100) / 100 } : a

@@ -72,7 +72,7 @@ export default function EmployeePortalPage() {
   const go = (next) => { setScreen(next); closeDrawer(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleLogout = () => { logout(); navigate('/employee-login', { replace: true }); };
   const money = (value) => `₹ ${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-  const handleAttendance = (action) => { const result = action === 'in' ? checkIn(user.employeeId) : checkOut(user.employeeId); addToast(result.success ? `${action === 'in' ? 'Check-in' : 'Check-out'} recorded` : result.error, result.success ? 'success' : 'error'); };
+  const handleAttendance = async (action) => { const result = await (action === 'in' ? checkIn(user.employeeId) : checkOut(user.employeeId)); addToast(result.success ? `${action === 'in' ? 'Check-in' : 'Check-out'} recorded` : result.error, result.success ? 'success' : 'error'); };
   const openUpload = (item) => { uploadTarget.current = item; fileRef.current?.click(); };
   const handleUpload = (event) => {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file || !uploadTarget.current) return;
