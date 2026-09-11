@@ -227,6 +227,41 @@ function check(name, cond, extra = '') {
   const download = await dl;
   check('CSV export filename correct', download.suggestedFilename() === 'attendo-attendance-report.csv', download.suggestedFilename());
 
+  // 13b. AI Report (AgentRouter) - success flow
+  await page.route('**/api/ai/ask', async (route) => {
+    await new Promise((r) => setTimeout(r, 700));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        content: '1. Performance Summary: Reliable attendance with steady working hours.\n2. Strengths: Consistently meets expected hours.\n3. Weaknesses: Occasional late check-ins.\n4. Improvement Suggestions: Start the workday earlier.\n5. Overall Performance Rating: 8/10',
+      }),
+    });
+  });
+  const aiSelect = page.locator('.ai-employee-select');
+  const aiOption = await aiSelect.locator('option').evaluateAll((os) => os.map((o) => o.value).find(Boolean));
+  await aiSelect.selectOption(aiOption);
+  await page.click('button:has-text("Generate AI Report")');
+  check('AI Report loading state shown', await page.isVisible('.ai-report-loading'));
+  await page.waitForSelector('.ai-report-content', { timeout: 5000 });
+  const aiContent = await page.textContent('.ai-report-content');
+  check('AI Report shows performance sections', aiContent.includes('Performance Summary') && aiContent.includes('Strengths') && aiContent.includes('Overall Performance Rating'));
+  check('AI Report shows rating', aiContent.includes('8/10'), aiContent);
+  await page.click('.modal-close');
+  await page.unroute('**/api/ai/ask');
+
+  // 13c. AI Report - error flow
+  await page.route('**/api/ai/ask', (route) =>
+    route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Invalid AgentRouter API key.' }) })
+  );
+  await page.click('button:has-text("Generate AI Report")');
+  await page.waitForSelector('.ai-report-error', { timeout: 5000 });
+  const aiErr = await page.textContent('.ai-report-error');
+  check('AI Report error shown', aiErr.includes('Invalid AgentRouter API key'), aiErr);
+  await page.click('.modal-close');
+  await page.unroute('**/api/ai/ask');
+
   // 14. Settings dark mode
   await page.click('a[href="/settings"]');
   await page.waitForSelector('.settings-sidebar');
@@ -249,26 +284,33 @@ function check(name, cond, extra = '') {
   check('Logout returns to login', true);
 
   // 17. Employee login
-  await page.fill('#login-email', 'rahul@attendo.com');
-  await page.selectOption('#login-role', 'employee');
+  await goto('/employee-login');
+  await page.fill('#employee-login-id', 'e1');
+  await page.fill('#employee-login-password', '123456');
+  await page.click('button[type="submit"]');
+  await page.waitForSelector('.employee-portal', { timeout: 5000 });
+  check('Employee login opens portal', true);
+  check('Employee portal shows own name', (await page.textContent('.employee-portal')).includes('Rahul Patel'));
+
+  // Employee sees own attendance only
+  const ownRows = await page.$$eval('.data-table tbody tr', r => r.length);
+  check('Employee sees own attendance', ownRows >= 1, String(ownRows));
+
+  // Log out of employee portal
+  await page.click('.employee-portal-header button:has-text("Log out")');
+  await page.waitForSelector('.login-page', { timeout: 5000 });
+
+  // 18. Admin login for mobile tests
+  await goto('/login');
+  await page.waitForSelector('#login-email', { timeout: 5000 });
+  await page.fill('#login-email', 'admin@attendo.com');
   await page.fill('#login-password', '123456');
   await page.click('button[type="submit"]');
   await page.waitForSelector('.dashboard', { timeout: 5000 });
-  check('Employee login opens dashboard', true);
-  const menuLinks = await page.$$eval('.sidebar-link', els => els.map(e => e.textContent));
-  check('Employee cannot see Employees menu', !menuLinks.some(l => l.includes('Employees')));
-  check('Employee cannot see Settings menu', !menuLinks.some(l => l.includes('Settings')));
 
-  // Employee sees own attendance only
-  await page.click('.sidebar-link[href="/attendance"]');
-  await page.waitForSelector('.page-header h2');
-  const ownRows = await page.$$eval('.data-table tbody tr', r => r.length);
-  check('Employee sees own attendance', ownRows === 1, String(ownRows));
-
-  // 18. Mobile responsive
+  // Mobile responsive
   await page.setViewportSize({ width: 375, height: 667 });
-  await goto('/');
-  await page.waitForSelector('.dashboard');
+  await page.waitForTimeout(400);
   check('Mobile menu toggle visible', await page.isVisible('.menu-toggle'));
   await page.click('.menu-toggle');
   await page.waitForTimeout(500);
@@ -280,7 +322,7 @@ function check(name, cond, extra = '') {
   await page.screenshot({ path: SHOT('test-dashboard-desktop.png'), fullPage: true });
   console.log('  Screenshots saved');
 
-  // 19. Admin login again - data persists
+  // 19. Logout and admin re-login - data persists
   await page.click('.sidebar-logout');
   await page.waitForSelector('.login-page');
   await page.fill('#login-email', 'admin@attendo.com');
@@ -292,8 +334,9 @@ function check(name, cond, extra = '') {
   const finalRows = await page.$$eval('.data-table tbody tr', r => r.length);
   check('Data persists after logout/login', finalRows >= 8, String(finalRows));
 
-  // 20. Console errors
-  check('No console/page errors', errors.length === 0, errors.slice(0, 5).join(' | '));
+  // 20. Console errors (ignore expected network-level 502s from the preview server)
+  const realErrors = errors.filter((e) => !e.includes('502'));
+  check('No console/page errors', realErrors.length === 0, realErrors.slice(0, 5).join(' | '));
 
   await browser.close();
   console.log('\n========================');

@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node tests/attendo-test.cjs"
+    "test": "node tests/attendo-test.cjs && node tests/ai-api-test.cjs"
   },
   "dependencies": {
     "react": "^19.2.8",

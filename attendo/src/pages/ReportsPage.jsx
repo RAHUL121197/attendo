@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { DEPARTMENTS } from '../utils/demoData';
 import { getCurrentDate } from '../utils/helpers';
+import { buildEmployeeReportContext, buildReportPrompt, requestAIReport, parseAISections, extractRating } from '../utils/aiReport';
+import Modal from '../components/ui/Modal';
 
 export default function ReportsPage() {
-  const { employees, attendance, leaves } = useApp();
+  const { employees, attendance, leaves, settings, addToast } = useApp();
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -14,6 +16,12 @@ export default function ReportsPage() {
   const [filterDept, setFilterDept] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  const [aiEmpId, setAiEmpId] = useState(employees[0]?.id || '');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiReport, setAiReport] = useState('');
+  const [aiError, setAiError] = useState('');
+  const [showAiReport, setShowAiReport] = useState(false);
 
   const filteredAttendance = useMemo(() => {
     return attendance.filter((a) => {
@@ -108,6 +116,48 @@ export default function ReportsPage() {
     setFilterStatus('');
   };
 
+  const closeAIReport = () => {
+    setShowAiReport(false);
+    setAiLoading(false);
+    setAiReport('');
+    setAiError('');
+  };
+
+  const handleGenerateAIReport = async () => {
+    if (aiLoading) return;
+    const emp = employees.find((e) => e.id === aiEmpId);
+    if (!emp) {
+      addToast('Select an employee first', 'error');
+      return;
+    }
+    const stats = employeeReports.find((r) => r.employee.id === emp.id) || {
+      present: 0, late: 0, absent: 0, timeOff: 0, totalHours: 0, attendancePct: 0,
+    };
+    const ctx = buildEmployeeReportContext({
+      employee: emp,
+      stats,
+      settings,
+      range: { from: dateFrom, to: dateTo },
+    });
+    const prompt = buildReportPrompt(ctx);
+
+    setShowAiReport(true);
+    setAiLoading(true);
+    setAiError('');
+    setAiReport('');
+    try {
+      const content = await requestAIReport(prompt);
+      setAiReport(content);
+    } catch (err) {
+      setAiError(err.message || 'Something went wrong while generating the AI report.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const aiSections = useMemo(() => (aiReport ? parseAISections(aiReport) : []), [aiReport]);
+  const aiRating = useMemo(() => (aiReport ? extractRating(aiReport) : null), [aiReport]);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -162,6 +212,22 @@ export default function ReportsPage() {
         <button className="btn btn-secondary" onClick={resetFilters}>Reset</button>
       </div>
 
+      <div className="ai-report-panel">
+        <div className="ai-report-heading">
+          <div className="ai-report-h2">AI Report</div>
+          <div className="ai-report-note">Generate a performance summary, strengths, weaknesses, and a rating for a selected employee using AgentRouter.</div>
+        </div>
+        <div className="ai-report-bar">
+          <select className="ai-employee-select" value={aiEmpId} onChange={(e) => setAiEmpId(e.target.value)}>
+            <option value="">Select Employee</option>
+            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+          </select>
+          <button className="btn btn-primary" onClick={handleGenerateAIReport} disabled={aiLoading}>
+            {aiLoading ? 'Generating...' : 'Generate AI Report'}
+          </button>
+        </div>
+      </div>
+
       <div className="table-wrap">
         <table className="data-table">
           <thead>
@@ -203,6 +269,39 @@ export default function ReportsPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal isOpen={showAiReport} onClose={closeAIReport} title={`AI Report - ${employees.find((e) => e.id === aiEmpId)?.name || ''}`} size="lg">
+        {aiLoading ? (
+          <div className="ai-report-loading">
+            <span className="ai-spinner" aria-hidden="true"></span>
+            <p>Analyzing attendance &amp; performance data...</p>
+          </div>
+        ) : aiError ? (
+          <div className="ai-report-error" role="alert">
+            <strong>Could not generate the AI report.</strong>
+            <p>{aiError}</p>
+          </div>
+        ) : aiReport ? (
+          <div className="ai-report-content">
+            {aiRating !== null && (
+              <div className="ai-report-rating">
+                <span className="ai-rating-badge">{aiRating}/10</span>
+                <span>Overall Performance Rating</span>
+              </div>
+            )}
+            {aiSections.map((section, i) => (
+              <div className="ai-report-section" key={i}>
+                <h4 className="ai-report-section-title">{section.title}</h4>
+                <div className="ai-report-section-text">
+                  {section.lines.map((line, j) => (
+                    <p key={j}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
