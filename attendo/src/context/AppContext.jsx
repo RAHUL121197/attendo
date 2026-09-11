@@ -5,6 +5,15 @@ import { generateId, getCurrentDate, getCurrentTime, timeToMinutes, timeDiffHour
 
 const AppContext = createContext(null);
 
+function getEmployeeSerial(id) {
+  const match = String(id || '').match(/^(?:EMP|e)(\d+)$/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function getHighestEmployeeSerial(employees) {
+  return employees.reduce((highest, employee) => Math.max(highest, getEmployeeSerial(employee.id)), 0);
+}
+
 export function AppProvider({ children }) {
   const [employees, setEmployees] = useState(() => {
     const data = loadData(KEYS.EMPLOYEES, null);
@@ -35,6 +44,7 @@ export function AppProvider({ children }) {
   const [darkMode, setDarkMode] = useState(() => loadData(KEYS.DARK_MODE, false));
   const [toasts, setToasts] = useState([]);
   const toastIdRef = useRef(0);
+  const employeeSequenceRef = useRef(Number(loadData(KEYS.EMPLOYEE_SEQUENCE, 0)) || 0);
 
   useEffect(() => { saveData(KEYS.EMPLOYEES, employees); }, [employees]);
   useEffect(() => { saveData(KEYS.USERS, users); }, [users]);
@@ -77,7 +87,18 @@ export function AppProvider({ children }) {
   }, []);
 
   const addEmployee = useCallback((emp) => {
-    const newEmp = { ...emp, id: generateId() };
+    employeeSequenceRef.current = Math.max(employeeSequenceRef.current, getHighestEmployeeSerial(employees));
+    let nextSerial = employeeSequenceRef.current + 1;
+    let employeeId = `EMP${String(nextSerial).padStart(3, '0')}`;
+    const existingIds = new Set(employees.map((employee) => employee.id.toLowerCase()));
+    while (existingIds.has(employeeId.toLowerCase())) {
+      nextSerial += 1;
+      employeeId = `EMP${String(nextSerial).padStart(3, '0')}`;
+    }
+    employeeSequenceRef.current = nextSerial;
+    saveData(KEYS.EMPLOYEE_SEQUENCE, nextSerial);
+
+    const newEmp = { ...emp, id: employeeId };
     setEmployees((prev) => [...prev, newEmp]);
     const newUser = {
       id: generateId(),
@@ -90,7 +111,7 @@ export function AppProvider({ children }) {
     setUsers((prev) => [...prev, newUser]);
     addNotification(`Employee ${emp.name} added`, 'success');
     return newEmp;
-  }, [addNotification]);
+  }, [employees, addNotification]);
 
   const updateEmployee = useCallback((id, updates) => {
     setEmployees((prev) => prev.map((e) => e.id === id ? { ...e, ...updates } : e));

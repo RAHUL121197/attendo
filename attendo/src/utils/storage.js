@@ -2,6 +2,7 @@ const KEYS = {
   USER: 'attendoUser',
   USERS: 'attendoUsers',
   EMPLOYEES: 'attendoEmployees',
+  EMPLOYEE_SEQUENCE: 'attendoEmployeeSequence',
   ATTENDANCE: 'attendoAttendance',
   LEAVES: 'attendoLeaves',
   NOTIFICATIONS: 'attendoNotifications',
