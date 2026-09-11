@@ -781,6 +781,11 @@ textarea {
 .credential-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
 .credential-row code { padding: 6px 9px; border-radius: 6px; background: var(--bg); color: var(--primary); font-size: 15px; font-weight: 700; }
 .credential-panel .btn { margin-top: 20px; }
+.password-card { margin-top: 20px; }
+.password-form { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 12px; padding: 0 22px 18px; }
+.password-form input { min-width: 0; }
+.form-status { margin: 0; padding: 0 22px 18px; color: var(--primary); font-weight: 600; }
+.login-success { padding: 12px; border-radius: 8px; background: var(--success-bg); color: var(--success); }
 
 .dashboard-banner {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -2045,6 +2050,7 @@ textarea {
   .portal-id { width: 100%; text-align: left; }
   .portal-grid { grid-template-columns: 1fr; }
   .credential-row { align-items: flex-start; flex-direction: column; }
+  .password-form { grid-template-columns: 1fr; padding: 0 16px 16px; }
 
   .install-steps {
     grid-template-columns: 1fr;

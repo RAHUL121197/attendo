@@ -91,6 +91,7 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+          <Link className="login-portal-link" to="/forgot-password">Forgot password?</Link>
           <Link className="login-portal-link" to="/employee-login">Employee Portal Login</Link>
         </div>
       </div>

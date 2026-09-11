@@ -48,6 +48,7 @@ export default function EmployeeLoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+          <Link className="login-portal-link" to="/forgot-password">Forgot password?</Link>
           <Link className="login-portal-link" to="/login">Admin Login</Link>
         </div>
       </div>
