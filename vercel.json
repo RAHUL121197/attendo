@@ -3,5 +3,8 @@
   "installCommand": "npm --prefix attendo install",
   "buildCommand": "npm --prefix attendo run build",
   "outputDirectory": "attendo/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
