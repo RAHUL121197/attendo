@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "installCommand": "npm --prefix attendo install",
+  "buildCommand": "npm --prefix attendo run build",
+  "outputDirectory": "attendo/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
