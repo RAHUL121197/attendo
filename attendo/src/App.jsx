@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import EmployeeLoginPage from './pages/EmployeeLoginPage';
-import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
+import EmployeePortalPage from './pages/EmployeePortalPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
@@ -55,7 +55,7 @@ function AppRoutes() {
       <Route path="/employee-login" element={<PublicRoute><EmployeeLoginPage /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
       <Route path="/install" element={<InstallPage />} />
-      <Route path="/employee-portal" element={<EmployeeRoute><EmployeeDashboardPage /></EmployeeRoute>} />
+      <Route path="/employee-portal" element={<EmployeeRoute><EmployeePortalPage /></EmployeeRoute>} />
       <Route path="/" element={<ProtectedRoute><AdminRoute><Layout /></AdminRoute></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
         <Route path="employees" element={<AdminRoute><EmployeesPage /></AdminRoute>} />

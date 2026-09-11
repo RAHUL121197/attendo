@@ -8,6 +8,11 @@ const KEYS = {
   NOTIFICATIONS: 'attendoNotifications',
   SETTINGS: 'attendoSettings',
   DARK_MODE: 'attendoDarkMode',
+  EMPLOYEE_LANGUAGE: 'attendoEmployeeLanguage',
+  EMPLOYEE_DOCUMENTS: 'attendoEmployeeDocuments',
+  EMPLOYEE_LOANS: 'attendoEmployeeLoans',
+  EMPLOYEE_ARREARS: 'attendoEmployeeArrears',
+  EMPLOYEE_SHIFTS: 'attendoEmployeeShifts',
 };
 
 export function saveData(key, data) {
