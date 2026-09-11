@@ -15,14 +15,14 @@ export default function EmployeeLoginPage() {
     event.preventDefault();
     setError('');
     if (!employeeId.trim() || !password) {
-      setError('Enter your Employee ID and password');
+      setError('Enter your email ID or Employee ID and password');
       return;
     }
     setLoading(true);
     setTimeout(() => {
       const result = login(employeeId, password, 'employee');
       if (result.success) addToast('Login successful');
-      else setError('Invalid Employee ID or password');
+      else setError('Invalid email ID, Employee ID, or password');
       setLoading(false);
     }, 300);
   };
@@ -37,8 +37,8 @@ export default function EmployeeLoginPage() {
           <form className="login-form" onSubmit={handleSubmit}>
             {error && <div className="login-error">{error}</div>}
             <div className="form-group">
-              <label htmlFor="employee-login-id">Employee ID</label>
-              <input id="employee-login-id" type="text" placeholder="EMP001" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} autoComplete="username" />
+              <label htmlFor="employee-login-id">Email ID or Employee ID</label>
+              <input id="employee-login-id" type="text" placeholder="name@attendo.com or EMP001" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} autoComplete="username" />
             </div>
             <div className="form-group">
               <label htmlFor="employee-login-password">Password</label>

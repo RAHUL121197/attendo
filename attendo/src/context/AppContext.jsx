@@ -26,6 +26,18 @@ function generateTemporaryPassword(existingUsers) {
   return password;
 }
 
+function generateEmployeeEmail(name, existingUsers) {
+  const base = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '') || 'employee';
+  const existingEmails = new Set(existingUsers.map((user) => user.email.toLowerCase()));
+  let email = `${base}@attendo.com`;
+  let suffix = 2;
+  while (existingEmails.has(email)) {
+    email = `${base}${suffix}@attendo.com`;
+    suffix += 1;
+  }
+  return email;
+}
+
 export function AppProvider({ children }) {
   const [employees, setEmployees] = useState(() => {
     const data = loadData(KEYS.EMPLOYEES, null);
@@ -110,13 +122,14 @@ export function AppProvider({ children }) {
     employeeSequenceRef.current = nextSerial;
     saveData(KEYS.EMPLOYEE_SEQUENCE, nextSerial);
 
+    const email = emp.email?.trim() || generateEmployeeEmail(emp.name, users);
     const temporaryPassword = generateTemporaryPassword(users);
-    const newEmp = { ...emp, id: employeeId };
+    const newEmp = { ...emp, email, id: employeeId };
     setEmployees((prev) => [...prev, newEmp]);
     const newUser = {
       id: generateId(),
       name: emp.name,
-      email: emp.email,
+      email,
       password: temporaryPassword,
       role: 'employee',
       employeeId: newEmp.id,

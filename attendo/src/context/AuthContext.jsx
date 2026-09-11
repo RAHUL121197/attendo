@@ -16,7 +16,9 @@ export function AuthProvider({ children }) {
   const login = useCallback((identifier, password, role) => {
     const users = loadData(KEYS.USERS, DEMO_USERS);
     const found = users.find(
-      (u) => (role === 'employee' ? u.employeeId?.toLowerCase() === identifier.trim().toLowerCase() : u.email.toLowerCase() === identifier.trim().toLowerCase())
+      (u) => (role === 'employee'
+        ? (u.employeeId?.toLowerCase() === identifier.trim().toLowerCase() || u.email?.toLowerCase() === identifier.trim().toLowerCase())
+        : u.email.toLowerCase() === identifier.trim().toLowerCase())
         && u.password === password && u.role === role
     );
     if (found) {

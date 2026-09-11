@@ -52,9 +52,8 @@ export default function EmployeesPage() {
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
-    else {
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
+    else if (form.email.trim()) {
       const dup = employees.find((e) => e.email === form.email && e.id !== editId);
       if (dup) errs.email = 'Email already exists';
     }
@@ -85,7 +84,7 @@ export default function EmployeesPage() {
       const newEmp = addEmployee(form);
       addToast('Employee added successfully');
       if (buildWhatsAppUrl(newEmp, window.location.origin)) handleSendLink(newEmp);
-      setCredentials({ name: newEmp.name, employeeId: newEmp.id, password: newEmp.temporaryPassword });
+      setCredentials({ name: newEmp.name, email: newEmp.email, employeeId: newEmp.id, password: newEmp.temporaryPassword });
     }
     setShowForm(false);
     setEditId(null);
@@ -227,7 +226,7 @@ export default function EmployeesPage() {
               {errors.name && <span className="form-error">{errors.name}</span>}
             </div>
             <div className="form-group">
-              <label>Email *</label>
+              <label>Email ID</label>
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               {errors.email && <span className="form-error">{errors.email}</span>}
             </div>
@@ -300,6 +299,7 @@ export default function EmployeesPage() {
         {credentials && (
           <div className="credential-panel">
             <p>Share these temporary credentials with {credentials.name}. They can use them at the Employee Portal.</p>
+            <div className="credential-row"><strong>Email ID</strong><code>{credentials.email}</code></div>
             <div className="credential-row"><strong>Employee ID</strong><code>{credentials.employeeId}</code></div>
             <div className="credential-row"><strong>Temporary Password</strong><code>{credentials.password}</code></div>
             <button className="btn btn-primary btn-block" onClick={() => setCredentials(null)}>Done</button>
