@@ -14,6 +14,18 @@ function getHighestEmployeeSerial(employees) {
   return employees.reduce((highest, employee) => Math.max(highest, getEmployeeSerial(employee.id)), 0);
 }
 
+function generateTemporaryPassword(existingUsers) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+  const usedPasswords = new Set(existingUsers.map((user) => user.password));
+  let password = '';
+  do {
+    const values = new Uint32Array(12);
+    crypto.getRandomValues(values);
+    password = Array.from(values, (value) => alphabet[value % alphabet.length]).join('');
+  } while (usedPasswords.has(password));
+  return password;
+}
+
 export function AppProvider({ children }) {
   const [employees, setEmployees] = useState(() => {
     const data = loadData(KEYS.EMPLOYEES, null);
@@ -98,20 +110,21 @@ export function AppProvider({ children }) {
     employeeSequenceRef.current = nextSerial;
     saveData(KEYS.EMPLOYEE_SEQUENCE, nextSerial);
 
+    const temporaryPassword = generateTemporaryPassword(users);
     const newEmp = { ...emp, id: employeeId };
     setEmployees((prev) => [...prev, newEmp]);
     const newUser = {
       id: generateId(),
       name: emp.name,
       email: emp.email,
-      password: '123456',
+      password: temporaryPassword,
       role: 'employee',
       employeeId: newEmp.id,
     };
     setUsers((prev) => [...prev, newUser]);
     addNotification(`Employee ${emp.name} added`, 'success');
-    return newEmp;
-  }, [employees, addNotification]);
+    return { ...newEmp, temporaryPassword };
+  }, [employees, users, addNotification]);
 
   const updateEmployee = useCallback((id, updates) => {
     setEmployees((prev) => prev.map((e) => e.id === id ? { ...e, ...updates } : e));

@@ -13,10 +13,11 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  const login = useCallback((email, password, role) => {
+  const login = useCallback((identifier, password, role) => {
     const users = loadData(KEYS.USERS, DEMO_USERS);
     const found = users.find(
-      (u) => u.email === email && u.password === password && u.role === role
+      (u) => (role === 'employee' ? u.employeeId?.toLowerCase() === identifier.trim().toLowerCase() : u.email.toLowerCase() === identifier.trim().toLowerCase())
+        && u.password === password && u.role === role
     );
     if (found) {
       const userData = { id: found.id, name: found.name, email: found.email, role: found.role, employeeId: found.employeeId };

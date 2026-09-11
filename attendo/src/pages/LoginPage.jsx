@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 
@@ -7,7 +8,6 @@ export default function LoginPage() {
   const { addToast } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('admin');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +20,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setTimeout(() => {
-      const result = login(email, password, role);
+      const result = login(email, password, 'admin');
       if (result.success) {
         addToast('Login successful');
       } else {
@@ -77,13 +77,6 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="login-role">Role</label>
-              <select id="login-role" value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="admin">Admin</option>
-                <option value="employee">Employee</option>
-              </select>
-            </div>
 
             <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
@@ -93,14 +86,12 @@ export default function LoginPage() {
           <div className="login-demo">
             <p>Demo Credentials:</p>
             <div className="demo-creds">
-              <button type="button" className="demo-btn" onClick={() => { setEmail('admin@attendo.com'); setPassword('123456'); setRole('admin'); }}>
+              <button type="button" className="demo-btn" onClick={() => { setEmail('admin@attendo.com'); setPassword('123456'); }}>
                 Admin: admin@attendo.com
-              </button>
-              <button type="button" className="demo-btn" onClick={() => { setEmail('rahul@attendo.com'); setPassword('123456'); setRole('employee'); }}>
-                Employee: rahul@attendo.com
               </button>
             </div>
           </div>
+          <Link className="login-portal-link" to="/employee-login">Employee Portal Login</Link>
         </div>
       </div>
     </div>

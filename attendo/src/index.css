@@ -314,6 +314,30 @@ textarea {
   text-align: center;
 }
 
+.login-portal-link {
+  display: block;
+  margin-top: 18px;
+  color: var(--primary);
+  text-align: center;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-portal-link:hover { text-decoration: underline; }
+
+.employee-login-mark {
+  display: inline-flex;
+  width: 60px;
+  height: 60px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
+}
+
 .demo-creds {
   display: flex;
   flex-direction: column;
@@ -728,6 +752,35 @@ textarea {
   flex-direction: column;
   gap: 20px;
 }
+
+.employee-portal { min-height: 100vh; background: var(--bg); }
+.employee-portal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 5%; background: var(--card); border-bottom: 1px solid var(--border); }
+.employee-portal-header strong { color: var(--primary); font-size: 20px; }
+.employee-portal-header span { margin-left: 10px; color: var(--muted); }
+.employee-portal-content { max-width: 1180px; margin: 0 auto; padding: 32px 5%; }
+.portal-banner { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 28px; border-radius: var(--radius); background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; }
+.portal-banner h1 { margin: 4px 0; font-size: 28px; }
+.portal-banner p { margin: 0; opacity: .86; }
+.portal-banner .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.portal-id { min-width: 140px; padding: 14px; border: 1px solid rgba(255,255,255,.35); border-radius: 10px; text-align: right; }
+.portal-id span, .portal-id strong { display: block; }
+.portal-id span { font-size: 12px; opacity: .8; }
+.portal-id strong { margin-top: 4px; font-family: monospace; font-size: 18px; }
+.portal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+.portal-card { padding: 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.portal-card > span { color: var(--muted); }
+.portal-label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+.portal-value { display: block; margin-bottom: 6px; font-size: 21px; }
+.portal-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.portal-history { padding: 0; overflow: hidden; }
+.portal-history .table-wrap { border: 0; border-radius: 0; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 12px; }
+.section-heading h2 { margin: 0; font-size: 18px; }
+.section-heading span { color: var(--muted); font-size: 13px; }
+.credential-panel p { margin-top: 0; color: var(--muted); }
+.credential-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.credential-row code { padding: 6px 9px; border-radius: 6px; background: var(--bg); color: var(--primary); font-size: 15px; font-weight: 700; }
+.credential-panel .btn { margin-top: 20px; }
 
 .dashboard-banner {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -1985,6 +2038,14 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .employee-portal-content { padding: 20px 16px; }
+  .employee-portal-header { padding: 14px 16px; }
+  .employee-portal-header span { display: none; }
+  .portal-banner { align-items: flex-start; flex-direction: column; padding: 22px; }
+  .portal-id { width: 100%; text-align: left; }
+  .portal-grid { grid-template-columns: 1fr; }
+  .credential-row { align-items: flex-start; flex-direction: column; }
+
   .install-steps {
     grid-template-columns: 1fr;
   }
@@ -1996,4 +2057,136 @@ textarea {
   .install-card {
     padding: 28px 20px;
   }
+}
+
+/* =========== AI REPORT =========== */
+.ai-report-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ai-report-heading {
+  min-width: 200px;
+  flex: 1;
+}
+
+.ai-report-h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ai-report-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ai-report-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-employee-select {
+  min-width: 200px;
+}
+
+.ai-report-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.ai-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: ai-spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-report-error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  padding: 16px;
+  font-size: 13.5px;
+}
+
+.ai-report-error p {
+  margin: 6px 0 0;
+  color: var(--text-light);
+}
+
+.ai-report-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-report-rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ai-rating-badge {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 10px;
+}
+
+.ai-report-section {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.ai-report-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 8px;
+}
+
+.ai-report-section-text p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.ai-report-section-text p:last-child {
+  margin-bottom: 0;
 }

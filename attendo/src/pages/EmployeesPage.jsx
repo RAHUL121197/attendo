@@ -32,6 +32,7 @@ export default function EmployeesPage() {
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
   const [viewEmp, setViewEmp] = useState(null);
+  const [credentials, setCredentials] = useState(null);
 
   const filtered = useMemo(() => {
     return employees.filter((e) => {
@@ -84,6 +85,7 @@ export default function EmployeesPage() {
       const newEmp = addEmployee(form);
       addToast('Employee added successfully');
       if (buildWhatsAppUrl(newEmp, window.location.origin)) handleSendLink(newEmp);
+      setCredentials({ name: newEmp.name, employeeId: newEmp.id, password: newEmp.temporaryPassword });
     }
     setShowForm(false);
     setEditId(null);
@@ -232,7 +234,7 @@ export default function EmployeesPage() {
             <div className="form-group">
               <label>Phone *</label>
               <input
-                type="tel"
+                type="text"
                 inputMode="numeric"
                 maxLength={10}
                 pattern="[0-9]{10}"
@@ -292,6 +294,17 @@ export default function EmployeesPage() {
             <button type="submit" className="btn btn-primary">{editId ? 'Update' : 'Add'} Employee</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={!!credentials} onClose={() => setCredentials(null)} title="Employee Login Credentials" size="sm">
+        {credentials && (
+          <div className="credential-panel">
+            <p>Share these temporary credentials with {credentials.name}. They can use them at the Employee Portal.</p>
+            <div className="credential-row"><strong>Employee ID</strong><code>{credentials.employeeId}</code></div>
+            <div className="credential-row"><strong>Temporary Password</strong><code>{credentials.password}</code></div>
+            <button className="btn btn-primary btn-block" onClick={() => setCredentials(null)}>Done</button>
+          </div>
+        )}
       </Modal>
 
       <Modal isOpen={!!viewEmp} onClose={() => setViewEmp(null)} title="Employee Details" size="md">
