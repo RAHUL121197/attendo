@@ -35,8 +35,8 @@ export default function Header({ onMenuToggle }) {
           <svg viewBox="0 0 32 32" width="32" height="32">
             <defs>
               <linearGradient id="hdrGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: '#4f46e5' }} />
-                <stop offset="100%" style={{ stopColor: '#7c3aed' }} />
+                <stop offset="0%" style={{ stopColor: '#0f766e' }} />
+                <stop offset="100%" style={{ stopColor: '#0e7490' }} />
               </linearGradient>
             </defs>
             <rect width="32" height="32" rx="8" fill="url(#hdrGrad)" />

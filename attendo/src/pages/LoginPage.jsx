@@ -38,8 +38,8 @@ export default function LoginPage() {
             <svg viewBox="0 0 60 60" width="60" height="60">
               <defs>
                 <linearGradient id="loginGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#4f46e5' }} />
-                  <stop offset="100%" style={{ stopColor: '#7c3aed' }} />
+                  <stop offset="0%" style={{ stopColor: '#0f766e' }} />
+                  <stop offset="100%" style={{ stopColor: '#0e7490' }} />
                 </linearGradient>
               </defs>
               <rect width="60" height="60" rx="16" fill="url(#loginGrad)" />

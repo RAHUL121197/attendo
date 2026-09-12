@@ -58,8 +58,8 @@ export default function Sidebar({ isOpen, onClose }) {
             <svg viewBox="0 0 40 40" width="40" height="40">
               <defs>
                 <linearGradient id="sidebarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#4f46e5' }} />
-                  <stop offset="100%" style={{ stopColor: '#7c3aed' }} />
+                  <stop offset="0%" style={{ stopColor: '#0f766e' }} />
+                  <stop offset="100%" style={{ stopColor: '#0e7490' }} />
                 </linearGradient>
               </defs>
               <rect width="40" height="40" rx="10" fill="url(#sidebarGrad)" />
