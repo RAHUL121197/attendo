@@ -11,8 +11,10 @@ const router = express.Router();
 const loginSchema = z.object({ identifier: z.string().trim().min(1), password: z.string().min(1) });
 const employeeSchema = z.object({
   name: z.string().trim().min(2).max(120), email: z.string().trim().email().max(255), phone: z.string().trim().max(30).optional(),
+  aadharCardNo: z.string().trim().regex(/^\d{12}$/, 'Aadhar Card No. must contain exactly 12 digits').optional(),
   department: z.string().trim().max(100).optional(), position: z.string().trim().max(120).optional(), password: z.string().min(8).max(128).optional(),
 });
+const aadharLookupSchema = z.object({ aadharCardNo: z.string().trim().regex(/^\d{12}$/, 'Aadhar Card No. must contain exactly 12 digits') });
 const attendanceSchema = z.object({ employeeId: z.coerce.number().int().positive(), date: z.string().date(), checkIn: z.string().datetime().optional(), checkOut: z.string().datetime().optional(), status: z.string().trim().min(1).max(40).default('Present') });
 const questionSchema = z.object({ question: z.string().trim().min(1).max(500), category: z.string().trim().min(1).max(100) });
 const reportSchema = z.object({ employeeId: z.coerce.number().int().positive(), reportDate: z.string().date(), status: z.string().trim().min(1).max(40).default('Draft') });
@@ -70,32 +72,39 @@ router.post('/employees', authRequired, requireRole('admin'), asyncHandler(async
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock($1)', [828374]);
-    const duplicate = await client.query('SELECT 1 FROM employees WHERE LOWER(email) = LOWER($1)', [input.email]);
-    if (duplicate.rowCount) return res.status(409).json({ error: 'Employee email already exists.' });
+    const duplicate = await client.query('SELECT 1 FROM employees WHERE LOWER(email) = LOWER($1) OR ($2::TEXT IS NOT NULL AND aadhar_card_no = $2)', [input.email, input.aadharCardNo || null]);
+    if (duplicate.rowCount) return res.status(409).json({ error: 'An employee with these details already exists.' });
     const highest = await client.query(`SELECT COALESCE(MAX(CAST(SUBSTRING(employee_id FROM 4) AS INTEGER)), 0) AS serial FROM employees WHERE employee_id ~ '^EMP[0-9]+$'`);
     const employeeId = `EMP${String(Number(highest.rows[0].serial) + 1).padStart(3, '0')}`;
     const temporaryPassword = input.password || `Attendo-${randomUUID().slice(0, 8)}!`;
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
-    const employee = await client.query(`INSERT INTO employees (employee_id, name, email, phone, department, position, password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, employee_id, name, email, phone, department, position, created_at`, [employeeId, input.name, input.email, input.phone || null, input.department || null, input.position || null, passwordHash]);
+    const employee = await client.query(`INSERT INTO employees (employee_id, name, email, phone, aadhar_card_no, department, position, password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, employee_id, name, email, phone, department, position, created_at`, [employeeId, input.name, input.email, input.phone || null, input.aadharCardNo || null, input.department || null, input.position || null, passwordHash]);
     await client.query(`INSERT INTO users (name, email, password_hash, role, employee_id) VALUES ($1,$2,$3,'employee',$4)`, [input.name, input.email, passwordHash, employee.rows[0].id]);
     await client.query('COMMIT');
     return res.status(201).json({ employee: employee.rows[0], temporaryPassword });
   } catch (error) {
     await client.query('ROLLBACK');
-    if (error.code === '23505') return res.status(409).json({ error: 'Employee ID or email already exists.' });
+    if (error.code === '23505') return res.status(409).json({ error: 'An employee with these details already exists.' });
     throw error;
   } finally { client.release(); }
 }));
 
 router.get('/employees', authRequired, requireRole('admin'), asyncHandler(async (_req, res) => {
-  const result = await query('SELECT id, employee_id, name, email, phone, department, position, created_at FROM employees ORDER BY id DESC');
+  const result = await query('SELECT id, employee_id, name, email, phone, aadhar_card_no, department, position, created_at FROM employees ORDER BY id DESC');
   return res.json({ employees: result.rows });
+}));
+
+router.post('/employees/lookup-by-aadhar', authRequired, requireRole('admin'), asyncHandler(async (req, res) => {
+  const { aadharCardNo } = parse(aadharLookupSchema, req.body);
+  const result = await query('SELECT id, employee_id, name, email, phone, department, position, created_at FROM employees WHERE aadhar_card_no = $1 LIMIT 1', [aadharCardNo]);
+  if (!result.rowCount) return res.status(404).json({ error: 'Employee not found.' });
+  return res.json({ employee: result.rows[0] });
 }));
 
 router.get('/employees/:id', authRequired, asyncHandler(async (req, res) => {
   const requestedId = Number(req.params.id);
   if (req.user.role === 'employee' && requestedId !== Number(req.user.employeeId)) return res.status(403).json({ error: 'You can only access your own employee record.' });
-  const result = await query('SELECT id, employee_id, name, email, phone, department, position, created_at FROM employees WHERE id = $1', [requestedId]);
+  const result = await query('SELECT id, employee_id, name, email, phone, aadhar_card_no, department, position, created_at FROM employees WHERE id = $1', [requestedId]);
   if (!result.rowCount) return res.status(404).json({ error: 'Employee not found.' });
   return res.json({ employee: result.rows[0] });
 }));
@@ -104,10 +113,10 @@ router.put('/employees/:id', authRequired, requireRole('admin'), asyncHandler(as
   const input = parse(employeeSchema.partial(), req.body);
   const fields = Object.entries(input);
   if (!fields.length) return res.status(400).json({ error: 'No employee fields supplied.' });
-  const values = fields.map(([, value]) => value);
-  const assignments = fields.map(([key], index) => `${key === 'position' ? 'position' : key} = $${index + 1}`).join(', ');
-  values.push(Number(req.params.id));
-  const result = await query(`UPDATE employees SET ${assignments} WHERE id = $${values.length} RETURNING id, employee_id, name, email, phone, department, position, created_at`, values);
+  const assignments = fields.map(([key], index) => `${key === 'aadharCardNo' ? 'aadhar_card_no' : key} = $${index + 1}`).join(', ');
+  const normalizedValues = fields.map(([key, value]) => key === 'aadharCardNo' ? value || null : value);
+  normalizedValues.push(Number(req.params.id));
+  const result = await query(`UPDATE employees SET ${assignments} WHERE id = $${normalizedValues.length} RETURNING id, employee_id, name, email, phone, aadhar_card_no, department, position, created_at`, normalizedValues);
   if (!result.rowCount) return res.status(404).json({ error: 'Employee not found.' });
   return res.json({ employee: result.rows[0] });
 }));

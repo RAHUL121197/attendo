@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { DEPARTMENTS, SHIFTS, DESIGNATIONS } from '../utils/demoData';
 import { formatDate } from '../utils/helpers';
@@ -16,11 +16,11 @@ const emptyForm = {
   name: '', email: '', phone: '', department: 'Development',
   designation: 'Sr. Developer', shift: 'Default Shift',
   joiningDate: '', gender: 'Male', status: 'Active',
-  biometricRegistered: false,
+  biometricRegistered: false, aadharCardNo: '',
 };
 
 export default function EmployeesPage() {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, addToast } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, lookupEmployeeByAadhar, addToast } = useApp();
   const [search, setSearch] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -33,6 +33,33 @@ export default function EmployeesPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [viewEmp, setViewEmp] = useState(null);
   const [credentials, setCredentials] = useState(null);
+  const [aadharLookup, setAadharLookup] = useState({ key: '', status: 'idle', employee: null, message: '' });
+  const normalizedAadhar = String(form.aadharCardNo || '').replace(/\D/g, '').slice(0, 12);
+  const activeAadharLookup = aadharLookup.key === normalizedAadhar ? aadharLookup : {
+    key: normalizedAadhar,
+    status: normalizedAadhar.length === 12 ? 'loading' : normalizedAadhar ? 'invalid' : 'idle',
+    employee: null,
+    message: normalizedAadhar.length === 12 ? 'Checking employee records...' : normalizedAadhar ? 'Enter all 12 digits to search.' : '',
+  };
+
+  useEffect(() => {
+    if (editId) return undefined;
+    const value = normalizedAadhar;
+    if (value.length !== 12) return undefined;
+    let cancelled = false;
+    lookupEmployeeByAadhar(value).then(({ employee, notFound }) => {
+      if (cancelled) return;
+      setAadharLookup({
+        key: value,
+        status: employee ? 'found' : notFound ? 'not-found' : 'idle',
+        employee: employee || null,
+        message: employee ? 'An employee with this Aadhar Card No. already exists.' : notFound ? 'Employee not found.' : '',
+      });
+    }).catch(() => {
+      if (!cancelled) setAadharLookup({ key: value, status: 'error', employee: null, message: 'Unable to check the employee database. Try again.' });
+    });
+    return () => { cancelled = true; };
+  }, [editId, normalizedAadhar, lookupEmployeeByAadhar]);
 
   const filtered = useMemo(() => {
     return employees.filter((e) => {
@@ -61,6 +88,8 @@ export default function EmployeesPage() {
     else if (!/^\d{10}$/.test(form.phone.replace(/\D/g, ''))) errs.phone = 'Invalid phone';
     if (!form.department) errs.department = 'Department is required';
     if (!form.shift) errs.shift = 'Shift is required';
+    if (!editId && !/^\d{12}$/.test(form.aadharCardNo || '')) errs.aadharCardNo = 'Aadhar Card No. must contain exactly 12 digits';
+    if (!editId && activeAadharLookup.status === 'found') errs.aadharCardNo = 'This Aadhar Card No. already belongs to an employee';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -77,14 +106,19 @@ export default function EmployeesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    if (editId) {
-      updateEmployee(editId, form);
-      addToast('Employee updated successfully');
-    } else {
-      const newEmp = await addEmployee(form);
-      addToast('Employee added successfully');
-      if (buildWhatsAppUrl(newEmp, window.location.origin)) handleSendLink(newEmp);
-      setCredentials({ name: newEmp.name, email: newEmp.email, employeeId: newEmp.id, password: newEmp.temporaryPassword });
+    try {
+      if (editId) {
+        updateEmployee(editId, form);
+        addToast('Employee updated successfully');
+      } else {
+        const newEmp = await addEmployee(form);
+        addToast('Employee added successfully');
+        if (buildWhatsAppUrl(newEmp, window.location.origin)) handleSendLink(newEmp);
+        setCredentials({ name: newEmp.name, email: newEmp.email, employeeId: newEmp.id, password: newEmp.temporaryPassword });
+      }
+    } catch (error) {
+      addToast(error.message || 'Unable to save employee', 'error');
+      return;
     }
     setShowForm(false);
     setEditId(null);
@@ -96,6 +130,7 @@ export default function EmployeesPage() {
     setEditId(emp.id);
     setShowForm(true);
     setErrors({});
+    setAadharLookup({ status: 'idle', employee: null, message: '' });
   };
 
   const openAdd = () => {
@@ -103,6 +138,7 @@ export default function EmployeesPage() {
     setEditId(null);
     setShowForm(true);
     setErrors({});
+    setAadharLookup({ status: 'idle', employee: null, message: '' });
   };
 
   const handleDelete = () => {
@@ -220,6 +256,40 @@ export default function EmployeesPage() {
       <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditId(null); }} title={editId ? 'Edit Employee' : 'Add Employee'} size="lg">
         <form className="emp-form" onSubmit={handleSubmit}>
           <div className="form-grid">
+            <div className="form-group form-group-wide">
+              <label htmlFor="employee-aadhar">Aadhar Card No. {editId ? '' : '*'}</label>
+              <input
+                id="employee-aadhar"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={12}
+                placeholder="Enter 12-digit Aadhar number"
+                value={form.aadharCardNo || ''}
+                onChange={(e) => setForm({ ...form, aadharCardNo: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                aria-describedby="aadhar-lookup-status"
+              />
+              {errors.aadharCardNo && <span className="form-error">{errors.aadharCardNo}</span>}
+              {!errors.aadharCardNo && activeAadharLookup.message && (
+                <span id="aadhar-lookup-status" className={`aadhar-lookup-message ${activeAadharLookup.status}`} role="status">{activeAadharLookup.message}</span>
+              )}
+            </div>
+            {activeAadharLookup.employee && (
+              <div className="aadhar-match-panel">
+                <div className="aadhar-match-heading">
+                  <strong>Saved employee details</strong>
+                  <span className="badge badge-warning">Duplicate record</span>
+                </div>
+                <div className="aadhar-match-grid">
+                  <span><small>Employee Name</small>{activeAadharLookup.employee.name}</span>
+                  <span><small>Mobile Number</small>{activeAadharLookup.employee.phone || 'Not available'}</span>
+                  <span><small>Email</small>{activeAadharLookup.employee.email || 'Not available'}</span>
+                  <span><small>Department / Designation</small>{[activeAadharLookup.employee.department, activeAadharLookup.employee.designation].filter(Boolean).join(' / ') || 'Not available'}</span>
+                  <span><small>Employee ID</small>{activeAadharLookup.employee.employeeCode || activeAadharLookup.employee.id}</span>
+                </div>
+                <p className="aadhar-match-note">This record cannot be added again.</p>
+              </div>
+            )}
             <div className="form-group">
               <label>Full Name *</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

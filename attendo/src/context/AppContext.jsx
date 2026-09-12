@@ -40,6 +40,20 @@ function generateEmployeeEmail(name, existingUsers) {
   return email;
 }
 
+function normalizeAadhar(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 12);
+}
+
+function mapEmployee(employee) {
+  return {
+    ...employee,
+    id: String(employee.id),
+    employeeCode: employee.employeeCode || employee.employee_id,
+    designation: employee.designation || employee.position,
+    aadharCardNo: employee.aadharCardNo || employee.aadhar_card_no || '',
+  };
+}
+
 export function AppProvider({ children }) {
   const { user } = useAuth();
   const [employees, setEmployees] = useState(() => {
@@ -78,7 +92,7 @@ export function AppProvider({ children }) {
     let cancelled = false;
     Promise.all([apiRequest('/api/employees'), apiRequest('/api/attendance')]).then(([employeeData, attendanceData]) => {
       if (cancelled) return;
-      setEmployees(employeeData.employees.map((employee) => ({ ...employee, id: String(employee.id), employeeCode: employee.employee_id, designation: employee.position, status: 'Active', shift: 'Default Shift', biometricRegistered: false })));
+      setEmployees(employeeData.employees.map((employee) => ({ ...mapEmployee(employee), status: 'Active', shift: 'Default Shift', biometricRegistered: false })));
       setAttendance(attendanceData.attendance.map((record) => ({ ...record, id: String(record.id), employeeId: String(record.employee_id), date: String(record.date), checkIn: record.check_in, checkOut: record.check_out })));
     }).catch((error) => console.error(`Database sync failed: ${error.message}`));
     return () => { cancelled = true; };
@@ -124,10 +138,32 @@ export function AppProvider({ children }) {
     setNotifications([]);
   }, []);
 
-  const addEmployee = useCallback((emp) => {
+  const lookupEmployeeByAadhar = useCallback(async (aadharCardNo) => {
+    const normalized = normalizeAadhar(aadharCardNo);
+    if (!/^\d{12}$/.test(normalized)) return { employee: null, notFound: false };
     if (apiEnabled) {
-      return apiRequest('/api/employees', { method: 'POST', body: JSON.stringify({ name: emp.name, email: emp.email, phone: emp.phone, department: emp.department, position: emp.designation }) }).then(({ employee, temporaryPassword }) => {
-        const mapped = { ...emp, ...employee, id: String(employee.id), employeeCode: employee.employee_id, designation: employee.position, temporaryPassword };
+      try {
+        const { employee } = await apiRequest('/api/employees/lookup-by-aadhar', {
+          method: 'POST',
+          body: JSON.stringify({ aadharCardNo: normalized }),
+        });
+        return { employee: mapEmployee(employee), notFound: false };
+      } catch (error) {
+        if (error.message === 'Employee not found.') return { employee: null, notFound: true };
+        throw error;
+      }
+    }
+    const employee = employees.find((item) => normalizeAadhar(item.aadharCardNo) === normalized);
+    return { employee: employee || null, notFound: !employee };
+  }, [employees]);
+
+  const addEmployee = useCallback((emp) => {
+    const aadharCardNo = normalizeAadhar(emp.aadharCardNo);
+    const duplicate = employees.find((employee) => normalizeAadhar(employee.aadharCardNo) === aadharCardNo);
+    if (aadharCardNo && duplicate) return Promise.reject(new Error('An employee with this Aadhar Card No. already exists.'));
+    if (apiEnabled) {
+      return apiRequest('/api/employees', { method: 'POST', body: JSON.stringify({ name: emp.name, email: emp.email, phone: emp.phone, aadharCardNo, department: emp.department, position: emp.designation }) }).then(({ employee, temporaryPassword }) => {
+        const mapped = { ...emp, ...mapEmployee(employee), aadharCardNo, temporaryPassword };
         setEmployees((prev) => [mapped, ...prev]);
         addNotification(`Employee ${emp.name} added`, 'success');
         return mapped;
@@ -146,7 +182,7 @@ export function AppProvider({ children }) {
 
     const email = emp.email?.trim() || generateEmployeeEmail(emp.name, users);
     const temporaryPassword = generateTemporaryPassword(users);
-    const newEmp = { ...emp, email, id: employeeId };
+    const newEmp = { ...emp, aadharCardNo, email, id: employeeId };
     setEmployees((prev) => [...prev, newEmp]);
     const newUser = {
       id: generateId(),
@@ -300,6 +336,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       employees, attendance, leaves, notifications, settings, darkMode, toasts,
       addEmployee, updateEmployee, deleteEmployee,
+      lookupEmployeeByAadhar,
       checkIn, checkOut, startBreak, endBreak,
       requestLeave, updateLeaveStatus,
       updateSettings, toggleDarkMode,

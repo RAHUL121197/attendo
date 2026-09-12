@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS employees (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   phone TEXT,
+  aadhar_card_no TEXT,
   department TEXT,
   position TEXT,
   password_hash TEXT NOT NULL,
@@ -23,6 +24,9 @@ CREATE TABLE IF NOT EXISTS employees (
 
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_employee_id_fkey;
 ALTER TABLE users ADD CONSTRAINT users_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL;
+
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS aadhar_card_no TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS employees_aadhar_card_no_idx ON employees (aadhar_card_no) WHERE aadhar_card_no IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS attendance (
   id BIGSERIAL PRIMARY KEY,
