@@ -8,6 +8,8 @@ export default function LoginPage() {
   const { addToast } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,68 +34,64 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-logo">
-            <svg viewBox="0 0 60 60" width="60" height="60">
-              <defs>
-                <linearGradient id="loginGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#0f766e' }} />
-                  <stop offset="100%" style={{ stopColor: '#0e7490' }} />
-                </linearGradient>
-              </defs>
-              <rect width="60" height="60" rx="16" fill="url(#loginGrad)" />
-              <text x="30" y="27" fontFamily="Arial,sans-serif" fontSize="24" fontWeight="bold" fill="white" textAnchor="middle">A</text>
-              <text x="30" y="43" fontFamily="Arial,sans-serif" fontSize="9" fill="rgba(255,255,255,0.85)" textAnchor="middle">ATTENDO</text>
-            </svg>
+      <div className="login-shell">
+        <section className="login-intro">
+          <div className="login-brand-lockup">
+            <div className="login-logo-mark">A</div>
+            <div><strong>Attendo</strong><span>Workforce operations</span></div>
           </div>
-          <h1 className="login-title">Attendo</h1>
-          <p className="login-subtitle">Employee Attendance Management System</p>
+          <div className="login-intro-copy">
+            <span className="eyebrow">Attendance, simplified</span>
+            <h1>Keep your team moving forward.</h1>
+            <p>One calm workspace for attendance, people, and the work that happens every day.</p>
+          </div>
+          <div className="login-signal-grid" aria-hidden="true">
+            <div><strong>98.6%</strong><span>Attendance clarity</span></div>
+            <div><strong>24/7</strong><span>Always in sync</span></div>
+          </div>
+        </section>
+
+        <section className="login-card">
+          <div className="login-card-heading">
+            <span className="eyebrow">Admin workspace</span>
+            <h2>Welcome back</h2>
+            <p>Sign in to continue to your dashboard.</p>
+          </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
             {error && <div className="login-error">{error}</div>}
 
             <div className="form-group">
-              <label htmlFor="login-email">Email</label>
-              <input
-                id="login-email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
+              <label htmlFor="login-email">Employee ID or email</label>
+              <input id="login-email" type="email" placeholder="you@attendo.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
             </div>
 
             <div className="form-group">
               <label htmlFor="login-password">Password</label>
-              <input
-                id="login-password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+              <div className="password-input-wrap">
+                <input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)}>{showPassword ? 'Hide' : 'Show'}</button>
+              </div>
             </div>
 
-
-            <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+            <div className="login-options">
+              <label className="remember-option"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> <span>Remember me</span></label>
+              <Link to="/forgot-password">Forgot password?</Link>
+            </div>
+            <button className="btn btn-primary btn-block login-submit" type="submit" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign in to Attendo'}
             </button>
           </form>
 
           <div className="login-demo">
-            <p>Demo Credentials:</p>
-            <div className="demo-creds">
-              <button type="button" className="demo-btn" onClick={() => { setEmail('admin@attendo.com'); setPassword('123456'); }}>
-                Admin: admin@attendo.com
-              </button>
-            </div>
+            <p>Need a quick start?</p>
+            <button type="button" className="demo-btn" onClick={() => { setEmail('admin@attendo.com'); setPassword('123456'); }}>Use admin demo account</button>
           </div>
-          <Link className="login-portal-link" to="/forgot-password">Forgot password?</Link>
-          <Link className="login-portal-link" to="/employee-login">Employee Portal Login</Link>
-        </div>
+          <div className="login-footer-links">
+            <Link to="/employee-login">Employee portal</Link>
+            <button type="button" onClick={() => addToast('Please contact your Attendo administrator', 'info')}>Contact admin</button>
+          </div>
+        </section>
       </div>
     </div>
   );
